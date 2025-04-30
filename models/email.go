@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"net/smtp"
+	"strings"
 
 	"github.com/cevrimxe/auth-service/config"
 )
@@ -25,11 +26,24 @@ func NewMailer() *Mailer {
 	}
 }
 
-func (m *Mailer) SendVerifyEmail(toEmail, token string) error {
-	auth := smtp.PlainAuth("", m.From, m.Password, m.Host)
-	subject := "Subject: Email Verification\n"
-	body := fmt.Sprintf("Click to verify your email: http://localhost:8080/verify?token=%s", token)
-	msg := []byte(subject + "\n" + body)
+func (m *Mailer) Mailer(toEmail, subject, body string) error {
+	headers := make(map[string]string)
+	headers["From"] = m.From
+	headers["To"] = toEmail
+	headers["Subject"] = subject
+	headers["Content-Type"] = "text/plain; charset=UTF-8"
 
+	var msgBuilder strings.Builder
+	for key, value := range headers {
+		msgBuilder.WriteString(fmt.Sprintf("%s: %s\r\n", key, value))
+	}
+
+	// body
+	msgBuilder.WriteString("\r\n" + body)
+
+	msg := []byte(msgBuilder.String())
+
+	// SMTP sunucusu ile bağlantıyı kur
+	auth := smtp.PlainAuth("", m.From, m.Password, m.Host)
 	return smtp.SendMail(m.Host+":"+m.Port, auth, m.From, []string{toEmail}, msg)
 }

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -38,16 +39,13 @@ func signup(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not save!", "err": err})
 		return
 	}
-	context.JSON(http.StatusCreated, gin.H{"message": "User created"})
-
-	mailer := models.NewMailer()
-	err = mailer.SendVerifyEmail(user.Email, "denemetokeni")
+	err = sendVerify(user.Email, user.ID)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not send verification mail!"})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not send verification email", "err": err.Error()})
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "Verification mail sent!"})
+	context.JSON(http.StatusCreated, gin.H{"message": "User created and verification mail sent"})
 }
 
 func login(context *gin.Context) {
@@ -74,4 +72,62 @@ func login(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "login successful", "token": token})
+}
+
+func verifyEmail(context *gin.Context) {
+	token := context.DefaultQuery("token", "")
+	if token == "" {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Token is required"})
+		return
+	}
+
+	userID, err := utils.VerifyToken(token)
+	if err != nil {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid or expired token"})
+		return
+	}
+	fmt.Println("User ID from token:", userID)
+
+	verifiedUser, err := models.GetUserById(userID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch user"})
+		return
+	}
+
+	if verifiedUser == nil {
+		context.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
+
+	if verifiedUser.EmailVerified {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Email already verified"})
+		return
+	}
+
+	err = models.UpdateEmailVerified(verifiedUser.ID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not update email verification status"})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Email verified successfully"})
+
+}
+
+func sendVerify(email string, userId int64) error {
+	fmt.Println("Generating token with userId:", userId)
+	token, err := utils.GenerateVerifyToken(userId)
+	if err != nil {
+		return fmt.Errorf("error generating verification token: %v", err)
+	}
+
+	verifyURL := fmt.Sprintf("http://localhost:8080/verify?token=%s", token)
+	body := fmt.Sprintf("Click to verify your email: %s", verifyURL)
+	subject := "Verify Your Email"
+	mailer := models.NewMailer()
+	err = mailer.Mailer(email, subject, body)
+	if err != nil {
+		return err
+	}
+	return nil
 }

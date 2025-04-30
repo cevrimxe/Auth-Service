@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/cevrimxe/auth-service/database"
@@ -26,7 +27,7 @@ type User struct {
 	ResetTokenExpiry *time.Time `json:"reset_token_expiry,omitempty"`
 }
 
-func (u User) Save() error {
+func (u *User) Save() error {
 	query := `
 	INSERT INTO users (
     	email,
@@ -68,6 +69,8 @@ func (u User) Save() error {
 		u.ResetTokenExpiry,
 	).Scan(&u.ID)
 
+	fmt.Println("userID after insert:", u.ID)
+
 	return err
 }
 
@@ -90,11 +93,12 @@ func GetUserByEmail(email string) (*User, error) {
 }
 
 func (u *User) ValidateCredentials() error {
-	query := "SELECT id, password_hash FROM users WHERE email = $1"
+	query := "SELECT id, password_hash, email_verified FROM users WHERE email = $1"
 	row := database.DB.QueryRow(context.Background(), query, u.Email)
 
 	var retrievedPassword string
-	err := row.Scan(&u.ID, &retrievedPassword)
+	var emailVerified bool
+	err := row.Scan(&u.ID, &retrievedPassword, &emailVerified)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return errors.New("no user found with this email")
@@ -105,6 +109,43 @@ func (u *User) ValidateCredentials() error {
 	passwordIsValid := utils.CheckPasswordHash(u.Password, retrievedPassword)
 	if !passwordIsValid {
 		return errors.New("invalid credentials")
+	}
+
+	if !emailVerified {
+		return errors.New("email not verified")
+	}
+
+	return nil
+}
+
+func GetUserById(id int64) (*User, error) {
+	var user User
+	err := database.DB.QueryRow(context.Background(), `
+		SELECT id, email, password_hash, first_name, last_name, created_at, updated_at, is_active, email_verified, role
+		FROM users WHERE id = $1
+	`, id).Scan(
+		&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName,
+		&user.CreatedAt, &user.UpdatedAt, &user.IsActive, &user.EmailVerified, &user.Role,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows { // Eğer kullanıcı bulunmazsa hata döner
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func UpdateEmailVerified(userId int64) error {
+	query := `
+		UPDATE users 
+		SET email_verified = true 
+		WHERE id = $1
+	`
+
+	_, err := database.DB.Exec(context.Background(), query, userId)
+	if err != nil {
+		return err
 	}
 	return nil
 }
