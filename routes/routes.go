@@ -12,13 +12,16 @@ func RegisterRoutes(server *gin.Engine) {
 
 	authenticated := server.Group("/")
 	authenticated.Use(middlewares.Authenticate)
-	authenticated.GET("/me", getMe) // get infos of loggedin user // need authorization
+	authenticated.GET("/me", getMe)                       // get infos of loggedin user // need authorization
+	authenticated.PUT("/me", updateMe)                    // update loggedin user // need authorization
+	authenticated.PUT("/change-password", changePassword) // update loggedin user password. I break it with put /me for security // need authorization
+	authenticated.GET("/admin/users", getUsers)           // get users // admin role needed
 
 	server.POST("/forgot-password", forgetPassword)
 	server.POST("/reset-password", resetPassword) // reset password with mailed reset link
 
-	// server.PUT("/me",update) // update loggedin user // need authorization
-	// server.GET("/admin/users",) // get users // admin role needed
+	// server.PUT("/me",update)
+	// server.GET("/admin/users",)
 
 	// authenticated.POST("/logout", logout) // server.POST("/logout",logout) // logout // need authorization  // frontend can delete token basicly so dont need endpoint for this
 }

@@ -133,12 +133,9 @@ func sendVerify(email string, userId int64) error {
 }
 
 func getMe(context *gin.Context) {
-	log.Println("Keys map:", context.Keys)
 	userIDAny, exists := context.Get("userId")
-	log.Println("useridany:", userIDAny, " exists:", exists)
 	if !exists {
 		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
-		log.Println("Unauthorized access attempt in getMe function")
 		return
 	}
 
@@ -254,6 +251,144 @@ func resetPassword(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
+}
+
+func updateMe(context *gin.Context) {
+	userIDAny, exists := context.Get("userId")
+	if !exists {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDAny.(int64)
+	if !ok {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+
+	var updateData struct {
+		FirstName string `json:"firstName" binding:"omitempty"`
+		LastName  string `json:"lastName" binding:"omitempty"`
+	}
+
+	if err := context.ShouldBindJSON(&updateData); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request data", "error": err.Error()})
+		return
+	}
+
+	user, err := models.GetUserById(userID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not retrieve user", "error": err.Error()})
+		return
+	}
+
+	if user == nil {
+		context.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
+
+	if updateData.FirstName != "" {
+		user.FirstName = updateData.FirstName
+	}
+
+	if updateData.LastName != "" {
+		user.LastName = updateData.LastName
+	}
+
+	user.UpdatedAt = time.Now()
+	if err := user.Update(); err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not update user", "error": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "User updated successfully", "user": user})
+}
+func changePassword(context *gin.Context) {
+	userIDAny, exists := context.Get("userId")
+	if !exists {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDAny.(int64)
+	if !ok {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+
+	var request struct {
+		OldPassword string `json:"oldPassword" binding:"required"`
+		NewPassword string `json:"newPassword" binding:"required,min=6"`
+	}
+
+	if err := context.ShouldBindJSON(&request); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request data", "error": err.Error()})
+		return
+	}
+
+	user, err := models.GetUserById(userID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not retrieve user", "error": err.Error()})
+		return
+	}
+
+	if user == nil {
+		context.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
+
+	if err := user.CheckPassword(request.OldPassword); err != nil {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Old password is incorrect"})
+		return
+	}
+
+	if err := user.UpdatePassword(request.NewPassword); err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not update password", "error": err.Error()})
+		return
+	}
+
+	// Notify the user via email about the password update
+	subject := "Password Updated Successfully"
+	body := "Your password has been updated successfully. If you did not perform this action, please contact support immediately."
+	mailer := models.NewMailer()
+	if err := mailer.Mailer(user.Email, subject, body); err != nil {
+		log.Println("Failed to send password update notification email:", err)
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
+}
+
+func getUsers(context *gin.Context) {
+	userIDAny, exists := context.Get("userId")
+	if !exists {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDAny.(int64)
+	if !ok {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+
+	user, err := models.GetUserById(userID)
+	if err != nil || user == nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not retrieve user"})
+		return
+	}
+
+	if user.Role != "admin" {
+		context.JSON(http.StatusForbidden, gin.H{"message": "Access denied"})
+		return
+	}
+
+	users, err := models.GetAllUsers()
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not retrieve users", "error": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"users": users})
 }
 
 // func logout(context *gin.Context) {

@@ -170,3 +170,67 @@ func (u *User) UpdatePassword(newPassword string) error {
 
 	return nil
 }
+
+func (u *User) Update() error {
+	query := `
+        UPDATE users
+        SET first_name = $1, last_name = $2, updated_at = $3
+        WHERE id = $4
+    `
+
+	_, err := database.DB.Exec(
+		context.Background(),
+		query,
+		u.FirstName,
+		u.LastName,
+		time.Now(),
+		u.ID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update user: %v", err)
+	}
+
+	return nil
+}
+
+func (u *User) CheckPassword(password string) error {
+	// Compare the provided password with the stored hashed password
+	passwordIsValid := utils.CheckPasswordHash(password, u.Password)
+	if !passwordIsValid {
+		return errors.New("invalid password")
+	}
+
+	return nil
+}
+
+func GetAllUsers() ([]User, error) {
+	query := `
+		SELECT id, email, first_name, last_name, created_at, updated_at, is_active, email_verified, role
+		FROM users
+	`
+	rows, err := database.DB.Query(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var user User
+		err := rows.Scan(
+			&user.ID, &user.Email, &user.FirstName, &user.LastName,
+			&user.CreatedAt, &user.UpdatedAt, &user.IsActive, &user.EmailVerified, &user.Role,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}

@@ -1,7 +1,6 @@
 package middlewares
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/cevrimxe/auth-service/utils"
@@ -20,7 +19,7 @@ func Authenticate(context *gin.Context) {
 
 	if err != nil {
 		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "not authorized"})
-		fmt.Println("abi hata auth.go line 23")
+
 		return
 	}
 
