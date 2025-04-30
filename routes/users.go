@@ -37,4 +37,13 @@ func signup(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusCreated, gin.H{"message": "User created"})
+
+	mailer := models.NewMailer()
+	err = mailer.SendVerifyEmail(user.Email, "denemetokeni")
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not send verification mail!"})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Verification mail sent!"})
 }
