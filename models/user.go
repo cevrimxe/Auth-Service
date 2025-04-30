@@ -2,6 +2,8 @@ package models
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/cevrimxe/auth-service/database"
@@ -10,11 +12,11 @@ import (
 )
 
 type User struct {
-	ID               int        `json:"id"`
+	ID               int64      `json:"id"`
 	Email            string     `json:"email" binding:"required,email"`
 	Password         string     `json:"password" binding:"required"`
-	FirstName        string     `json:"first_name" binding:"required"`
-	LastName         string     `json:"last_name" binding:"required"`
+	FirstName        string     `json:"first_name"`
+	LastName         string     `json:"last_name"`
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
 	IsActive         bool       `json:"is_active"`
@@ -85,4 +87,24 @@ func GetUserByEmail(email string) (*User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (u *User) ValidateCredentials() error {
+	query := "SELECT id, password_hash FROM users WHERE email = $1"
+	row := database.DB.QueryRow(context.Background(), query, u.Email)
+
+	var retrievedPassword string
+	err := row.Scan(&u.ID, &retrievedPassword)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return errors.New("no user found with this email")
+		}
+		return errors.New("failed to query database: " + err.Error())
+	}
+
+	passwordIsValid := utils.CheckPasswordHash(u.Password, retrievedPassword)
+	if !passwordIsValid {
+		return errors.New("invalid credentials")
+	}
+	return nil
 }

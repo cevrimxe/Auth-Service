@@ -1,10 +1,12 @@
 package routes
 
 import (
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/cevrimxe/auth-service/models"
+	"github.com/cevrimxe/auth-service/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -46,4 +48,30 @@ func signup(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Verification mail sent!"})
+}
+
+func login(context *gin.Context) {
+	var user models.User
+	err := context.ShouldBindJSON(&user)
+	if err != nil {
+		log.Println("Error binding JSON:", err) // Log hatayı
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data!"})
+		return
+	}
+
+	err = user.ValidateCredentials()
+	if err != nil {
+		log.Println("Error validating credentials:", err) // Log hatayı
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Couldnt authenticate user", "error": err.Error()})
+		return
+	}
+
+	token, err := utils.GenerateToken(user.Email, user.ID)
+	if err != nil {
+		log.Println("Error generating token:", err) // Log hatayı
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Couldnt authenticate user", "error": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "login successful", "token": token})
 }
