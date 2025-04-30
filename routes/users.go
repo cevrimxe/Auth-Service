@@ -165,3 +165,101 @@ func getMe(context *gin.Context) {
 
 	context.JSON(http.StatusOK, user)
 }
+func forgetPassword(context *gin.Context) {
+	var request struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+
+	// Parse the request body
+	if err := context.ShouldBindJSON(&request); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request data", "error": err.Error()})
+		return
+	}
+
+	// Check if the user exists
+	user, err := models.GetUserByEmail(request.Email)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not check email", "error": err.Error()})
+		return
+	}
+
+	if user == nil {
+		context.JSON(http.StatusNotFound, gin.H{"message": "User with this email does not exist"})
+		return
+	}
+
+	// Generate a password reset token
+	resetToken, err := utils.GenerateResetToken(user.ID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not generate reset token", "error": err.Error()})
+		return
+	}
+
+	// Send the reset token via email
+	resetURL := fmt.Sprintf("http://localhost:8080/reset-password?token=%s", resetToken)
+	body := fmt.Sprintf("Click the link to reset your password: %s", resetURL)
+	subject := "Password Reset Request"
+	mailer := models.NewMailer()
+	if err := mailer.Mailer(user.Email, subject, body); err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not send reset email", "error": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Password reset email sent"})
+}
+
+func resetPassword(context *gin.Context) {
+	var request struct {
+		Token       string `json:"token" binding:"required"`
+		NewPassword string `json:"newPassword" binding:"required,min=6"`
+	}
+
+	// Parse the request body
+	if err := context.ShouldBindJSON(&request); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request data", "error": err.Error()})
+		return
+	}
+
+	// Verify the reset token
+	userID, err := utils.VerifyToken(request.Token)
+	if err != nil {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid or expired token", "error": err.Error()})
+		return
+	}
+
+	// Fetch the user by ID
+	user, err := models.GetUserById(userID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not retrieve user", "error": err.Error()})
+		return
+	}
+
+	if user == nil {
+		context.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
+
+	err = user.UpdatePassword(request.NewPassword)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not update password", "error": err.Error()})
+		return
+	}
+
+	// Notify the user via email about the password update
+	subject := "Password Updated Successfully"
+	body := "Your password has been updated successfully. If you did not perform this action, please contact support immediately."
+	mailer := models.NewMailer()
+	if err := mailer.Mailer(user.Email, subject, body); err != nil {
+		log.Println("Failed to send password update notification email:", err)
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
+}
+
+// func logout(context *gin.Context) {
+//
+// 	context.Set("userId", nil)
+
+//
+// 	context.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
+// }

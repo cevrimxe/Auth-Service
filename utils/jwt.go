@@ -57,3 +57,12 @@ func GenerateVerifyToken(userId int64) (string, error) {
 
 	return token.SignedString([]byte(secretKey))
 }
+
+func GenerateResetToken(userId int64) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userId": userId,
+		"exp":    time.Now().Add(time.Hour * 1).Unix(), // 1 hour expiry
+	})
+
+	return token.SignedString([]byte(secretKey))
+}

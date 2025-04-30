@@ -149,3 +149,24 @@ func UpdateEmailVerified(userId int64) error {
 	}
 	return nil
 }
+
+func (u *User) UpdatePassword(newPassword string) error {
+
+	hashedPassword, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %v", err)
+	}
+
+	query := `
+        UPDATE users
+        SET password_hash = $1, updated_at = $2
+        WHERE id = $3
+    `
+
+	_, err = database.DB.Exec(context.Background(), query, hashedPassword, time.Now(), u.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update password: %v", err)
+	}
+
+	return nil
+}

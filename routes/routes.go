@@ -14,9 +14,11 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated.Use(middlewares.Authenticate)
 	authenticated.GET("/me", getMe) // get infos of loggedin user // need authorization
 
-	// server.POST("/forgot-password",forgotPassword)
-	// server.POST("/reset-password",resetPassword) // reset password with mailed reset link
-	// server.POST("/logout",logout) // logout // need authorization
+	server.POST("/forgot-password", forgetPassword)
+	server.POST("/reset-password", resetPassword) // reset password with mailed reset link
+
 	// server.PUT("/me",update) // update loggedin user // need authorization
 	// server.GET("/admin/users",) // get users // admin role needed
+
+	// authenticated.POST("/logout", logout) // server.POST("/logout",logout) // logout // need authorization  // frontend can delete token basicly so dont need endpoint for this
 }
