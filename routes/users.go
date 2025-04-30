@@ -131,3 +131,37 @@ func sendVerify(email string, userId int64) error {
 	}
 	return nil
 }
+
+func getMe(context *gin.Context) {
+	log.Println("Keys map:", context.Keys)
+	userIDAny, exists := context.Get("userId")
+	log.Println("useridany:", userIDAny, " exists:", exists)
+	if !exists {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+		log.Println("Unauthorized access attempt in getMe function")
+		return
+	}
+
+	userID, ok := userIDAny.(int64)
+	if !ok {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid user ID type"})
+		return
+	}
+	if !ok || userID == 0 {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid or missing user ID"})
+		return
+	}
+
+	user, err := models.GetUserById(userID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not retrieve user"})
+		return
+	}
+
+	if user == nil {
+		context.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
+
+	context.JSON(http.StatusOK, user)
+}
