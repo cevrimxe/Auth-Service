@@ -43,8 +43,15 @@ Auth Service API is a RESTful API for user authentication and management. It pro
 3. Set up the environment variables:
    Create a `.env` file in the root directory and add the following:
    ```env
-   DATABASE_URL=postgres://username:password@localhost:5432/auth_service
-   JWT_SECRET=your_jwt_secret
+   DB_HOST=localhost
+    DB_PORT=5432
+    DB_USER=your_db_user
+    DB_PASSWORD=your_db_password
+    DB_NAME=your_db_name
+    SMTP_HOST=smtp.example.com
+    SMTP_PORT=587
+    SMTP_SENDER_EMAIL=your_email@example.com
+    SMTP_SENDER_PASSWORD=your_email_password
    ```
 
 4. Run database migrations (if applicable).
@@ -96,10 +103,18 @@ Auth Service API is a RESTful API for user authentication and management. It pro
 
 ## Environment Variables
 
-| Variable       | Description                          |
-|----------------|--------------------------------------|
-| `DATABASE_URL` | PostgreSQL connection string         |
-| `JWT_SECRET`   | Secret key for JWT token generation  |
+| Variable             | Description                          |
+|----------------------|--------------------------------------|
+| `DB_HOST`            | Database host (e.g., localhost)     |
+| `DB_PORT`            | Database port (e.g., 5432)          |
+| `DB_USER`            | Database username                   |
+| `DB_PASSWORD`        | Database password                   |
+| `DB_NAME`            | Database name                       |
+| `SMTP_HOST`          | SMTP server host (e.g., smtp.gmail.com) |
+| `SMTP_PORT`          | SMTP server port (e.g., 587)        |
+| `SMTP_SENDER_EMAIL`  | Email address used for sending emails |
+| `SMTP_SENDER_PASSWORD` | Password for the sender email account |
+
 
 ---
 
@@ -193,6 +208,6 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 For support or inquiries, please contact:
 - **Name**: Ahmet
 - **Email**: cevrimdev@gmail.com
-```
 
----
+
+
