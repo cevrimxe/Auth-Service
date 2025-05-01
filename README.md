@@ -1,6 +1,4 @@
-Here’s the updated README.md file with the missing files (`config/config.go`, `database/database.go`, docs.go, email.go, and hash.go) added to the project structure:
 
-```markdown
 # Auth Service API
 
 Auth Service API is a RESTful API for user authentication and management. It provides features such as user registration, login, email verification, password reset, and user management.
