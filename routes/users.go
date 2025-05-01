@@ -11,6 +11,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @Summary Sign up a new user
+// @Description Create a new user account and send a verification email
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param user body models.User true "User data" example({"email":"user@example.com","password":"password123","first_name":"John","last_name":"Doe"})
+// @Success 201 {object} map[string]string "User created successfully" example({"message":"User created and verification mail sent"})
+// @Failure 400 {object} map[string]string "Bad request" example({"message":"Invalid request data"})
+// @Failure 500 {object} map[string]string "Internal server error" example({"message":"Could not save user"})
+// @Router /signup [post]
 func signup(context *gin.Context) {
 	var user models.User
 	err := context.ShouldBindJSON(&user)
@@ -48,6 +58,17 @@ func signup(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "User created and verification mail sent"})
 }
 
+// @Summary Log in a user
+// @Description Authenticate a user and return a JWT token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param user body models.User true "User credentials" example({"email":"user@example.com","password":"password123"})
+// @Success 200 {object} map[string]string "Login successful" example({"message":"login successful","token":"jwt-token-example"})
+// @Failure 400 {object} map[string]string "Bad request" example({"message":"Invalid request data"})
+// @Failure 401 {object} map[string]string "Unauthorized" example({"message":"Invalid credentials"})
+// @Failure 500 {object} map[string]string "Internal server error" example({"message":"Could not authenticate user"})
+// @Router /login [post]
 func login(context *gin.Context) {
 	var user models.User
 	err := context.ShouldBindJSON(&user)
@@ -74,6 +95,18 @@ func login(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "login successful", "token": token})
 }
 
+// @Summary Verify email
+// @Description Verify a user's email using a token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param token query string true "Verification token"
+// @Success 200 {object} map[string]string "Email verified successfully" example({"message":"Email verified successfully"})
+// @Failure 400 {object} map[string]string "Bad request" example({"message":"Token is required"})
+// @Failure 401 {object} map[string]string "Unauthorized" example({"message":"Invalid or expired token"})
+// @Failure 404 {object} map[string]string "Not found" example({"message":"User not found"})
+// @Failure 500 {object} map[string]string "Internal server error" example({"message":"Could not fetch user"})
+// @Router /verify [get]
 func verifyEmail(context *gin.Context) {
 	token := context.DefaultQuery("token", "")
 	if token == "" {
@@ -132,6 +165,16 @@ func sendVerify(email string, userId int64) error {
 	return nil
 }
 
+// @Summary Sign up a new user
+// @Description Create a new user account and send a verification email
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param user body models.User true "User data" example({"email":"user@example.com","password":"password123","first_name":"John","last_name":"Doe"})
+// @Success 201 {object} map[string]string "User created successfully" example({"message":"User created and verification mail sent"})
+// @Failure 400 {object} map[string]string "Bad request" example({"message":"Invalid request data"})
+// @Failure 500 {object} map[string]string "Internal server error" example({"message":"Could not save user"})
+// @Router /signup [post]
 func getMe(context *gin.Context) {
 	userIDAny, exists := context.Get("userId")
 	if !exists {
@@ -162,6 +205,18 @@ func getMe(context *gin.Context) {
 
 	context.JSON(http.StatusOK, user)
 }
+
+// @Summary Request password reset
+// @Description Send a password reset email to the user
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param email body map[string]string true "User email"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /forget-password [post]
 func forgetPassword(context *gin.Context) {
 	var request struct {
 		Email string `json:"email" binding:"required,email"`
@@ -205,6 +260,18 @@ func forgetPassword(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Password reset email sent"})
 }
 
+// @Summary Reset password
+// @Description Reset a user's password using a token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param reset body map[string]string true "Reset token and new password"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /reset-password [post]
 func resetPassword(context *gin.Context) {
 	var request struct {
 		Token       string `json:"token" binding:"required"`
@@ -253,6 +320,18 @@ func resetPassword(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
 }
 
+// @Summary Update user details
+// @Description Update the authenticated user's first name and last name
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param user body map[string]string true "Updated user data"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /me [put]
 func updateMe(context *gin.Context) {
 	userIDAny, exists := context.Get("userId")
 	if !exists {
@@ -303,6 +382,19 @@ func updateMe(context *gin.Context) {
 
 	context.JSON(http.StatusOK, gin.H{"message": "User updated successfully", "user": user})
 }
+
+// @Summary Change password
+// @Description Change the authenticated user's password
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param password body map[string]string true "Old and new passwords"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /change-password [put]
 func changePassword(context *gin.Context) {
 	userIDAny, exists := context.Get("userId")
 	if !exists {
@@ -358,6 +450,16 @@ func changePassword(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }
 
+// @Summary Get all users
+// @Description Retrieve a list of all users (admin only)
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.User "List of users" example([{"id":1,"email":"user1@example.com","first_name":"John","last_name":"Doe","is_active":true,"email_verified":true,"role":"user"},{"id":2,"email":"user2@example.com","first_name":"Jane","last_name":"Smith","is_active":true,"email_verified":false,"role":"admin"}])
+// @Failure 401 {object} map[string]string "Unauthorized" example({"message":"Unauthorized"})
+// @Failure 403 {object} map[string]string "Forbidden" example({"message":"Access denied"})
+// @Failure 500 {object} map[string]string "Internal server error" example({"message":"Could not retrieve users"})
+// @Router /users [get]
 func getUsers(context *gin.Context) {
 	userIDAny, exists := context.Get("userId")
 	if !exists {
