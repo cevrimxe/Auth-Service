@@ -44,14 +44,14 @@ Auth Service API is a RESTful API for user authentication and management. It pro
    Create a `.env` file in the root directory and add the following:
    ```env
    DB_HOST=localhost
-    DB_PORT=5432
-    DB_USER=your_db_user
-    DB_PASSWORD=your_db_password
-    DB_NAME=your_db_name
-    SMTP_HOST=smtp.example.com
-    SMTP_PORT=587
-    SMTP_SENDER_EMAIL=your_email@example.com
-    SMTP_SENDER_PASSWORD=your_email_password
+   DB_PORT=5432
+   DB_USER=your_db_user
+   DB_PASSWORD=your_db_password
+   DB_NAME=your_db_name
+   SMTP_HOST=smtp.example.com
+   SMTP_PORT=587
+   SMTP_SENDER_EMAIL=your_email@example.com
+   SMTP_SENDER_PASSWORD=your_email_password
    ```
 
 4. Run database migrations (if applicable).
