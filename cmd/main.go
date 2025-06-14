@@ -16,8 +16,9 @@ import (
 	"time"
 
 	"github.com/cevrimxe/auth-service/database"
-
 	_ "github.com/cevrimxe/auth-service/docs"
+	"github.com/cevrimxe/auth-service/handlers"
+	"github.com/cevrimxe/auth-service/repository/postgres"
 	"github.com/cevrimxe/auth-service/routes"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -25,10 +26,17 @@ import (
 )
 
 func main() {
-	database.ConnectDB()
+	db := database.ConnectDB()
+
+	// Repository layer
+	userRepo := postgres.NewUserRepository(db)
+
+	// Handler layer
+	userHandler := handlers.NewUserHandler(userRepo)
+
 	server := gin.Default()
 	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	routes.RegisterRoutes(server)
+	routes.RegisterRoutes(server, userHandler)
 
 	srv := &http.Server{
 		Addr:    ":8080",

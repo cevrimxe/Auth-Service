@@ -1,27 +1,23 @@
 package routes
 
 import (
+	"github.com/cevrimxe/auth-service/handlers"
 	"github.com/cevrimxe/auth-service/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(server *gin.Engine) {
-	server.POST("/signup", signup)
-	server.POST("/login", login)
-	server.GET("/verify", verifyEmail)
+func RegisterRoutes(server *gin.Engine, userHandler *handlers.UserHandler) {
+	server.POST("/signup", userHandler.Signup)
+	server.POST("/login", userHandler.Login)
+	server.GET("/verify", userHandler.VerifyEmail)
 
 	authenticated := server.Group("/")
 	authenticated.Use(middlewares.Authenticate)
-	authenticated.GET("/me", getMe)                       // get infos of loggedin user // need authorization
-	authenticated.PUT("/me", updateMe)                    // update loggedin user // need authorization
-	authenticated.PUT("/change-password", changePassword) // update loggedin user password. I break it with put /me for security // need authorization
-	authenticated.GET("/admin/users", getUsers)           // get users // admin role needed
+	authenticated.GET("/me", userHandler.GetMe)
+	authenticated.PUT("/me", userHandler.UpdateMe)
+	authenticated.PUT("/change-password", userHandler.ChangePassword)
+	authenticated.GET("/admin/users", userHandler.GetUsers)
 
-	server.POST("/forgot-password", forgetPassword)
-	server.POST("/reset-password", resetPassword) // reset password with mailed reset link
-
-	// server.PUT("/me",update)
-	// server.GET("/admin/users",)
-
-	// authenticated.POST("/logout", logout) // server.POST("/logout",logout) // logout // need authorization  // frontend can delete token basicly so dont need endpoint for this
+	server.POST("/forgot-password", userHandler.ForgetPassword)
+	server.POST("/reset-password", userHandler.ResetPassword)
 }
