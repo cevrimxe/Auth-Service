@@ -58,3 +58,11 @@ func createTable(db *pgxpool.Pool) {
 	}
 
 }
+
+func CloseDB() error {
+	if DB != nil {
+		DB.Close()
+		return nil
+	}
+	return nil
+}
